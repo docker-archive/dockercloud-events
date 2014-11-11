@@ -1,7 +1,7 @@
 FROM tutum/curl:trusty
 MAINTAINER Feng Honglin <hfeng@tutum.co>
 
-ADD . /gopath/src/github.com/tutumcloud/tutum-docker-utils/container-events
+ADD . /gopath/src/github.com/tutumcloud/container-events
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q git && \
@@ -10,7 +10,7 @@ RUN apt-get update -y && \
     export GOROOT=/goroot && \
     export GOPATH=/gopath && \
     export PATH=$PATH:/goroot/bin && \
-    go get github.com/tutumcloud/tutum-docker-utils/container-events && \
+    go get github.com/tutumcloud/container-events && \
     cp /gopath/bin/* / && \
     rm -fr /goroot /gopath /var/lib/apt/lists && \
     apt-get autoremove -y git && \

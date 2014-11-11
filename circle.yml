@@ -3,7 +3,12 @@ machine:
     GOPATH: $(echo $GOPATH | tr ":" "\n" | head -n1)
   pre:
     - git config --global url."git@github.com:".insteadOf https://github.com/
+  services:
+    - docker
 checkout:
   post:
     - mkdir -p $GOPATH/src/github.com/tutumcloud/container-events
     - cp -r . $GOPATH/src/github.com/tutumcloud/container-events
+test:
+  post:
+    - docker build -t sut .

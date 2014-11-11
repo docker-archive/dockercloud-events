@@ -6,6 +6,7 @@ tutum/utils:container-events
       -d \
       -v /var/run:/var/run:rw \
       -v /etc/tutum:/etc/tutum:r \
+      -v /usr/lib/tutum/docker:/docker:r \
       -e TUTUM_HOST="https://dashboard.tutum.co/" \
       -e DOCKER_HOST="unix:///var/run/docker.sock" \
       tutum/utils:container-events

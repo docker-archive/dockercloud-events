@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/tutumcloud/tutum-docker-utils/container-events/events"
+	"github.com/tutumcloud/container-events/events"
 	"log"
 	"os"
 	"runtime"

@@ -8,36 +8,26 @@ import (
 	"net/http"
 )
 
-type ContainerStatus struct {
-	NodeUUID    string `json:"node_uuid"`
-	ContainerID string `json:"docker_id"`
-	IsRunning   bool   `json:"is_running"`
-	ExitCode    int    `json:"exit_code"`
-	TimeStamp   int64  `json:"timestamp"`
-}
-
 var (
 	TutumEndpoint string
-	NodeUUID      string
 	TutumToken    string
 )
 
-func SendContainerEvent(id string, isRunning bool, exitCode int, timestamp int64) {
-	data := ContainerStatus{NodeUUID, id, isRunning, exitCode, timestamp}
-	form, err := json.Marshal(data)
+func SendContainerEvent(event Event) {
+	data, err := json.Marshal(event)
 	if err != nil {
-		log.Printf("Cannot marshal the posting data: %v\n", data)
+		log.Printf("Cannot marshal the posting data: %s\n", event)
 	}
 
-	log.Printf("Sending container event: %v\n", data)
-	if err := sendData(TutumEndpoint, form); err != nil {
-		log.Printf("Error when Posting %s:%s\n", form, err.Error())
+	log.Printf("Sending container event: %s on %s \n", event.Status, event.ID)
+	if err := sendData(TutumEndpoint, data); err != nil {
+		log.Printf("Error when Posting %s:%s\n", data, err.Error())
 	}
 }
 
-func sendData(url string, form []byte) error {
+func sendData(url string, data []byte) error {
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", url, bytes.NewReader(form))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}

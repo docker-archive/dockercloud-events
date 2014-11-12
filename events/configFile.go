@@ -34,14 +34,14 @@ func parseConfigFile(file string) (*Configuration, error) {
 	return &conf, nil
 }
 
-func GetConf(configFile string) (*Configuration){
-    if conf == nil {
-	    configuration, err := parseConfigFile(configFile)
-	    if err != nil {
-		    SendError(err)
-		    log.Fatalf("Cannot parse configuration file(%s):%s\n", configFile, err.Error())
-    	}
-        conf = configuration    
-    }
-    return conf
+func GetConf(configFile string) *Configuration {
+	if conf == nil {
+		configuration, err := parseConfigFile(configFile)
+		if err != nil {
+			SendError(err)
+			log.Fatalf("Cannot parse configuration file(%s):%s\n", configFile, err.Error())
+		}
+		conf = configuration
+	}
+	return conf
 }

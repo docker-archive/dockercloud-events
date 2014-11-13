@@ -9,7 +9,7 @@ tutum/utils:container-events
       -v /usr/lib/tutum/docker:/docker:r \
       -e TUTUM_HOST="https://dashboard.tutum.co/" \
       -e DOCKER_HOST="unix:///var/run/docker.sock" \
-      tutum/utils:container-events
+      tutum/container-events
 ```
 
 **Arguments**

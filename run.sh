@@ -5,7 +5,7 @@ set -m
 
 DOCKER_BINARY=/docker
 
-eval "${DOCKER_BINARY} version" >/dev/null 2>&1  ||( echo "Cannot run docker binary at {DOCKER_BINARY}" && exit 1)
+eval "${DOCKER_BINARY} version" >/dev/null 2>&1  ||( echo "Cannot run docker binary at ${DOCKER_BINARY}" && exit 1)
 
 if [ -z $1 ]; then
     SLEEP_TIME=3600

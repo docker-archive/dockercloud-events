@@ -22,4 +22,4 @@ ENV DOCKER_HOST unix:///var/run/docker.sock
 ADD run.sh /run.sh
 RUN chmod +x /run.sh
 
-ENTRYPOINT ["/run.sh"]
+CMD ["/run.sh"]

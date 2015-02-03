@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/tutumcloud/container-events/events"
 	"log"
-	"os"
 	"runtime"
 	"strings"
 )
@@ -13,21 +12,20 @@ func init() {
 	runtime.GOMAXPROCS(4)
 }
 
-var pDockerHost = flag.String("docker", "unix:///var/run/docker.sock", "docker host")
+var pDockerHost = flag.String("dockerHost", "unix:///var/run/docker.sock", "docker host")
 var pTest = flag.Bool("test", false, "test if the running environment is correct")
+var pDockerBinary = flag.String("dockerBinary", "/docker", "docker binary")
 
 const (
-	apiEndpoint = "/api/agent/container/status/"
+	apiEndpoint = "/api/agent/container/event/"
 	configFile  = "/etc/tutum/agent/tutum-agent.conf"
 )
 
 func main() {
 	flag.Parse()
-	var dockerHost string
 
-	if dockerHost = os.Getenv("DOCKER_HOST"); dockerHost == "" {
-		dockerHost = *pDockerHost
-	}
+	events.DockerHost = *pDockerHost
+	events.DockerBinary = *pDockerBinary
 
 	conf := events.GetConf(configFile)
 	events.TutumEndpoint = JoinURL(conf.TutumHost, apiEndpoint)
@@ -39,10 +37,10 @@ func main() {
 		log.Printf("Using NodeUUID(%s), TutumToken(%s)\n", events.NodeUUID, events.TutumToken)
 	}
 
-	client, err := events.NewDockerClient(dockerHost)
+	client, err := events.NewDockerClient(events.DockerHost)
 	if err != nil {
 		events.SendError(err)
-		log.Fatalf("Docker %s:%s", err.Error(), dockerHost)
+		log.Fatalf("Docker %s:%s", err.Error(), events.DockerHost)
 	}
 	if *pTest == false {
 		client.MonitorEvents()

@@ -37,8 +37,7 @@ func (self DockerClient) MonitorEvents() {
 }
 
 func (self DockerClient) handleEvents(apiEvent *dc.APIEvents) {
-	time.Sleep(1 * time.Second)
-	handle_time := time.Now().Unix()
+	handle_time := time.Now().UnixNano()
 	log.Printf("Docker event(handled at %d):%s %s at %d\n",
 		handle_time, apiEvent.ID, apiEvent.Status, apiEvent.Time)
 

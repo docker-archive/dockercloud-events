@@ -10,7 +10,7 @@ import (
 
 var (
 	TutumEndpoint string
-	TutumToken    string
+	TutumAuth     string
 )
 
 func SendContainerEvent(event Event) {
@@ -31,7 +31,7 @@ func sendData(url string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", "TutumAgentToken "+TutumToken)
+	req.Header.Add("Authorization", TutumAuth)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

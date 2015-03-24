@@ -18,6 +18,9 @@ RUN apt-get update -y && \
 
 ENV TUTUM_HOST https://dashboard.tutum.co/
 ENV DOCKER_HOST unix:///var/run/docker.sock
+ENV RESTART_INTERVAL 3600
+ENV TUTUM_AUTH **None**
+ENV NODE_UUID **None**
 
 ADD run.sh /run.sh
 RUN chmod +x /run.sh

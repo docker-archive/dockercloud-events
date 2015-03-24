@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/tutumcloud/container-events/events"
+	. "github.com/tutumcloud/container-events/events"
 	"log"
 	"runtime"
 	"strings"
@@ -12,9 +12,12 @@ func init() {
 	runtime.GOMAXPROCS(4)
 }
 
-var pDockerHost = flag.String("dockerHost", "unix:///var/run/docker.sock", "docker host")
 var pTest = flag.Bool("test", false, "test if the running environment is correct")
 var pDockerBinary = flag.String("dockerBinary", "/docker", "docker binary")
+var pDockerHost = flag.String("dockerHost", "unix:///var/run/docker.sock", "docker host")
+var pTutumHost = flag.String("tutumHost", "https://dashboard.tutum.co/", "tutum host")
+var pTutumAuth = flag.String("auth", "", "tutum auth")
+var pNodeUUID = flag.String("uuid", "", "node uuid")
 
 const (
 	apiEndpoint = "/api/agent/container/event/"
@@ -24,23 +27,22 @@ const (
 func main() {
 	flag.Parse()
 
-	events.DockerHost = *pDockerHost
-	events.DockerBinary = *pDockerBinary
+	DockerHost = *pDockerHost
+	DockerBinary = *pDockerBinary
+	TutumAuth = *pTutumAuth
+	NodeUUID = *pNodeUUID
 
-	conf := events.GetConf(configFile)
-	events.TutumEndpoint = JoinURL(conf.TutumHost, apiEndpoint)
-	events.NodeUUID = conf.TutumUUID
-	events.TutumToken = conf.TutumToken
+	TutumEndpoint = JoinURL(*pTutumHost, apiEndpoint)
 
 	if *pTest == false {
-		log.Println("Using Tutum Endpoint:", events.TutumEndpoint)
-		log.Printf("Using NodeUUID(%s), TutumToken(%s)\n", events.NodeUUID, events.TutumToken)
+		log.Println("Using Tutum Endpoint:", TutumEndpoint)
+		log.Printf("Using NodeUUID(%s), TutumAuth(%s)", NodeUUID, TutumAuth)
 	}
 
-	client, err := events.NewDockerClient(events.DockerHost)
+	client, err := NewDockerClient(DockerHost)
 	if err != nil {
-		events.SendError(err)
-		log.Fatalf("Docker %s:%s", err.Error(), events.DockerHost)
+		SendError(err)
+		log.Fatalf("Docker %s:%s", err.Error(), DockerHost)
 	}
 	if *pTest == false {
 		client.MonitorEvents()

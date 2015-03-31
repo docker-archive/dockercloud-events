@@ -19,13 +19,15 @@ func getSentryClient() *raven.Client {
 	return sentryClient
 }
 
-func SendError(err error) {
-	client := getSentryClient()
-	packet := &raven.Packet{Message: "Fatal Error", Interfaces: []raven.Interface{raven.NewException(err, raven.NewStacktrace(0, 3, nil))}}
-	_, ch := client.Capture(packet, nil)
-	if senderr := <-ch; senderr != nil {
-		log.Println(senderr)
-	} else {
-		log.Println("sent error to sentry successfully")
-	}
+func SendError(err error, msg string) {
+	go func() {
+		client := getSentryClient()
+		packet := &raven.Packet{Message: msg, Interfaces: []raven.Interface{raven.NewException(err, raven.NewStacktrace(0, 5, nil))}}
+		_, ch := client.Capture(packet, nil)
+		if senderr := <-ch; senderr != nil {
+			log.Println(senderr)
+		} else {
+			log.Println("sent error to sentry successfully")
+		}
+	}()
 }

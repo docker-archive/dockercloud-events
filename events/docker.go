@@ -33,7 +33,8 @@ func (self DockerClient) removeEventListener(listener chan *dc.APIEvents) error 
 func (self DockerClient) inspect(id string) string {
 	out, err := exec.Command(DockerBinary, "inspect", id).Output()
 	if err != nil {
-		log.Print(err)
+		SendError(err, "docker inspect failed")
+		log.Println("docker inspect:", err)
 		return ""
 	}
 	return string(out)

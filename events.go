@@ -41,7 +41,7 @@ func main() {
 
 	client, err := NewDockerClient(DockerHost)
 	if err != nil {
-		SendError(err)
+		SendError(err, "Fatal: Failed to get docker client")
 		log.Fatalf("Docker %s:%s", err.Error(), DockerHost)
 	}
 	if *pTest == false {

@@ -29,20 +29,22 @@ func sendData(url string, data []byte) error {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
+		SendError(err, "Failed to create http.NewRequest")
 		return err
 	}
 	req.Header.Add("Authorization", TutumAuth)
 	resp, err := client.Do(req)
 	if err != nil {
+		SendError(err, "Failed to do the http request")
 		return err
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case 200, 201, 202:
-		log.Println(resp.Status)
 		return nil
 	default:
+		SendError(errors.New(resp.Status), "http error")
 		return errors.New(resp.Status)
 	}
 }

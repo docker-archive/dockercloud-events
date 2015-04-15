@@ -23,8 +23,8 @@ func (self DockerClient) MonitorEvents() {
 	log.Println("Start monitoring container events ...")
 	listener, err := self.addEventListener()
 	if err != nil {
-		SendError(err)
-		log.Fatalf("Failed to add event listener: %s\n", err)
+		SendError(err, "Fatal: Failed to add event listener", nil)
+		log.Fatal("Failed to add event listener:", err)
 	}
 	defer self.removeEventListener(listener)
 	for {

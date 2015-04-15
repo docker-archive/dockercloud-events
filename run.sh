@@ -3,26 +3,31 @@
 set -e
 set -m
 
-DOCKER_BINARY=/docker
+export DOCKER_BINARY="/docker"
 
-eval "${DOCKER_BINARY} version" >/dev/null 2>&1  ||( echo "Cannot run docker binary at ${DOCKER_BINARY}" && exit 1)
+eval "${DOCKER_BINARY} version" >/dev/null 2>&1  || {
+	echo "Cannot run docker at ${DOCKER_BINARY}" ;
+	exit 1;
+}
 
-if [ -z $1 ]; then
-    SLEEP_TIME=3600
-else
-    SLEEP_TIME=$1
+if [ "${TUTUM_AUTH}" == "**None**" ]; then
+	echo "Need to specify TUTUM_AUTH"
+    exit 1
 fi
 
-echo "Test if container-events is ready to run ..."
-/container-events -test -dockerBinary=${DOCKER_BINARY} || exit "$?"
-echo "Pass the the test"
+if [ "${NODE_UUID}" == "**None**" ]; then
+	echo "Need to specify NODE_UUID"
+    exit 1
+fi
+
+echo "Testing execution environment"
+/container-events -test
 
 echo "Starting container event monitor ..."
-
 while [ 1 ]
 do
-    /container-events -dockerBinary=${DOCKER_BINARY} &
-    sleep ${SLEEP_TIME}
+    /container-events &
+    sleep ${RESTART_INTERVAL}
     echo "Restarting container event monitor ..."
     kill %
 done

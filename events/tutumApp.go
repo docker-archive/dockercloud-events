@@ -10,7 +10,7 @@ import (
 
 var (
 	TutumEndpoint string
-	TutumToken    string
+	TutumAuth     string
 )
 
 func SendContainerEvent(event Event) {
@@ -29,20 +29,26 @@ func sendData(url string, data []byte) error {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
+		SendError(err, "Failed to create http.NewRequest", nil)
 		return err
 	}
-	req.Header.Add("Authorization", "TutumAgentToken "+TutumToken)
+	req.Header.Add("Authorization", TutumAuth)
 	resp, err := client.Do(req)
 	if err != nil {
+		extra := map[string]interface{}{"data": string(data)}
+		SendError(err, "Failed to POST the http request", extra)
 		return err
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case 200, 201, 202:
-		log.Println(resp.Status)
+	case 200, 201, 202, 204:
 		return nil
+	case 404:
+		return errors.New(resp.Status)
 	default:
+		extra := map[string]interface{}{"data": string(data)}
+		SendError(errors.New(resp.Status), "http error", extra)
 		return errors.New(resp.Status)
 	}
 }

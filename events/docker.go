@@ -4,6 +4,7 @@ import (
 	dc "github.com/fsouza/go-dockerclient"
 	"log"
 	"os/exec"
+	"strings"
 )
 
 type DockerClient struct{ client *dc.Client }
@@ -31,10 +32,14 @@ func (self DockerClient) removeEventListener(listener chan *dc.APIEvents) error 
 }
 
 func (self DockerClient) inspect(id string) string {
-	out, err := exec.Command(DockerBinary, "inspect", id).Output()
+	out_bytes, err := exec.Command(DockerBinary, "inspect", id).CombinedOutput()
+	out := string(out_bytes)
 	if err != nil {
-		SendError(err, "docker inspect failed")
-		log.Println("docker inspect:", err)
+		if !strings.Contains(out, "No such image or container") {
+			extra := map[string]interface{}{"docker_inspcet_output": out}
+			SendError(err, "docker inspect failed", extra)
+		}
+		log.Println("Docker inspect error:", err, out)
 		return ""
 	}
 	return string(out)

@@ -3,7 +3,7 @@
 set -e
 set -m
 
-DOCKER_BINARY=/docker
+export DOCKER_BINARY="/docker"
 
 eval "${DOCKER_BINARY} version" >/dev/null 2>&1  || {
 	echo "Cannot run docker at ${DOCKER_BINARY}" ;
@@ -20,23 +20,13 @@ if [ "${NODE_UUID}" == "**None**" ]; then
     exit 1
 fi
 
-/container-events -test \
-	-dockerBinary "${DOCKER_BINARY}" \
-	-dockerHost "${DOCKER_HOST}" \
-	-tutumHost "${TUTUM_HOST}" \
-	-auth "${TUTUM_AUTH}" \
-	-uuid "${NODE_UUID}" || \
-	exit "$?"
+echo "Testing execution environment"
+/container-events -test
 
 echo "Starting container event monitor ..."
 while [ 1 ]
 do
-    /container-events \
-		-dockerBinary "${DOCKER_BINARY}" \
-		-dockerHost "${DOCKER_HOST}" \
-		-tutumHost "${TUTUM_HOST}" \
-		-auth "${TUTUM_AUTH}" \
-		-uuid "${NODE_UUID}" &
+    /container-events &
     sleep ${RESTART_INTERVAL}
     echo "Restarting container event monitor ..."
     kill %

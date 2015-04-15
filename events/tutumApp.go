@@ -42,8 +42,10 @@ func sendData(url string, data []byte) error {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case 200, 201, 202:
+	case 200, 201, 202, 204:
 		return nil
+	case 404:
+		return errors.New(resp.Status)
 	default:
 		extra := map[string]interface{}{"data": string(data)}
 		SendError(errors.New(resp.Status), "http error", extra)

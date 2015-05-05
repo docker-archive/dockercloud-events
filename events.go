@@ -18,7 +18,6 @@ const (
 )
 
 func main() {
-	var pTest = flag.Bool("test", false, "test if the execution environment is correct")
 	flag.Parse()
 
 	DockerHost = os.Getenv("DOCKER_HOST")
@@ -30,19 +29,16 @@ func main() {
 
 	TutumEndpoint = JoinURL(TutumHost, apiEndpoint)
 
-	if *pTest == false {
-		log.Println("Using Tutum Endpoint:", TutumEndpoint)
-		log.Printf("Using NodeUUID(%s), TutumAuth(%s)", NodeUUID, TutumAuth)
-	}
+	log.Println("Using Tutum Endpoint:", TutumEndpoint)
+	log.Printf("Using NodeUUID(%s), TutumAuth(%s)", NodeUUID, TutumAuth)
 
 	client, err := NewDockerClient(DockerHost)
 	if err != nil {
 		SendError(err, "Fatal: Failed to get docker client", nil)
 		log.Fatalf("Docker %s:%s", err.Error(), DockerHost)
 	}
-	if *pTest == false {
-		client.MonitorEvents()
-	}
+
+	client.MonitorEvents()
 }
 
 func JoinURL(url1 string, url2 string) (url string) {

@@ -8,7 +8,6 @@ ADD https://files.tutum.co/ca-certificates.crt /etc/ssl/certs/ca-certificates.cr
 
 ENV TUTUM_HOST https://dashboard.tutum.co/
 ENV DOCKER_HOST unix:///var/run/docker.sock
-ENV RESTART_INTERVAL 3600
 ENV TUTUM_AUTH **None**
 ENV NODE_UUID **None**
 

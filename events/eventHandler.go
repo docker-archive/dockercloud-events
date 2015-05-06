@@ -27,12 +27,15 @@ func (self DockerClient) MonitorEvents() {
 		log.Fatal("Failed to add event listener:", err)
 	}
 	defer self.removeEventListener(listener)
+
+	timeout := time.After(1 * time.Second)
 	for {
 		select {
 		case apiEvent := <-listener:
-			self.handleEvents(apiEvent)
+			go self.handleEvents(apiEvent)
+		case <-timeout:
+			break
 		}
-
 	}
 }
 
@@ -44,5 +47,5 @@ func (self DockerClient) handleEvents(apiEvent *dc.APIEvents) {
 	inspect := self.inspect(apiEvent.ID)
 	event := Event{NodeUUID, apiEvent.Status, apiEvent.ID, apiEvent.From,
 		apiEvent.Time, handle_time, inspect}
-	go SendContainerEvent(event)
+	SendContainerEvent(event)
 }

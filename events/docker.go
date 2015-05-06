@@ -23,7 +23,7 @@ func NewDockerClient(host string) (DockerClient, error) {
 }
 
 func (self DockerClient) addEventListener() (listener chan *dc.APIEvents, err error) {
-	listener = make(chan *dc.APIEvents, 10)
+	listener = make(chan *dc.APIEvents)
 	return listener, self.client.AddEventListener(listener)
 }
 

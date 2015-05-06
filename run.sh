@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
-set -m
 
 export DOCKER_BINARY="/docker"
 
@@ -20,14 +19,5 @@ if [ "${NODE_UUID}" == "**None**" ]; then
     exit 1
 fi
 
-echo "Testing execution environment"
-/container-events -test
-
 echo "Starting container event monitor ..."
-while [ 1 ]
-do
-    /container-events &
-    sleep ${RESTART_INTERVAL}
-    echo "Restarting container event monitor ..."
-    kill %
-done
+exec /container-events 

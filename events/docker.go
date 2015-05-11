@@ -2,7 +2,6 @@ package events
 
 import (
 	dc "github.com/fsouza/go-dockerclient"
-	"log"
 	"os/exec"
 	"strings"
 )
@@ -39,7 +38,6 @@ func (self DockerClient) inspect(id string) string {
 			extra := map[string]interface{}{"docker_inspcet_output": out}
 			SendError(err, "docker inspect failed", extra)
 		}
-		log.Println("Docker inspect error:", err, out)
 		return ""
 	}
 	return string(out)

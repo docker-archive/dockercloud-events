@@ -55,7 +55,7 @@ func sendData(url string, data []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		log.Printf("Send metrics failed: %s", resp.Status)
+		log.Printf("Send metrics failed: %s - %s", resp.Status, string(data))
 		extra := map[string]interface{}{"data": string(data)}
 		SendError(errors.New(resp.Status), "http error", extra)
 		if resp.StatusCode >= 500 {

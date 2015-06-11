@@ -21,19 +21,19 @@ func SendContainerEvent(event Event) {
 		log.Printf("Cannot marshal the posting data: %s\n", event)
 	}
 
-	counter := 0
+	counter := 1
 	for {
 		err := sendData(TutumEndpoint, data)
 		if err == nil {
 			break
 		} else {
-			if counter > 720 {
+			if counter > 100 {
 				log.Println("Too many reties, give up")
 				break
 			} else {
-				counter += 1
-				log.Println("Retry in 5 seconds")
-				time.Sleep(5 * time.Second)
+				counter *= 2
+				log.Printf("%s: Retry in %d seconds", err, counter)
+				time.Sleep(time.Duration(counter) * time.Second)
 			}
 		}
 	}

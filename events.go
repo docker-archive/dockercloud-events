@@ -15,6 +15,7 @@ func init() {
 
 const (
 	apiEndpoint = "/api/agent/container/event/"
+	version     = "0.1"
 )
 
 func main() {
@@ -28,6 +29,7 @@ func main() {
 	TutumHost := os.Getenv("TUTUM_HOST")
 
 	TutumEndpoint = JoinURL(TutumHost, apiEndpoint)
+	UserAgent = "tutum-events/" + version
 
 	log.Println("Using Tutum Endpoint:", TutumEndpoint)
 	log.Printf("Using NodeUUID(%s), TutumAuth(%s)", NodeUUID, TutumAuth)

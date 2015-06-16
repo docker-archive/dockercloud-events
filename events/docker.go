@@ -1,8 +1,8 @@
 package events
 
 import (
+	"fmt"
 	dc "github.com/fsouza/go-dockerclient"
-	"os/exec"
 	"strings"
 )
 
@@ -30,17 +30,20 @@ func (self DockerClient) removeEventListener(listener chan *dc.APIEvents) error 
 	return self.client.RemoveEventListener(listener)
 }
 
-func (self DockerClient) inspect(id string) string {
-	out_bytes, err := exec.Command(DockerBinary, "inspect", id).CombinedOutput()
-	out := string(out_bytes)
-	if err != nil {
-		if !strings.Contains(out, "No such image or container") {
-			extra := map[string]interface{}{"docker_inspcet_output": out}
-			SendError(err, "docker inspect failed", extra)
+func (self DockerClient) inspect(id string) (restart bool, exitcode string) {
+	restart = false
+	exitcode = ""
+
+	container, err := self.client.InspectContainer(id)
+	if err == nil && container != nil {
+		name := strings.ToLower(container.HostConfig.RestartPolicy.Name)
+		if strings.HasPrefix(name, "on-failure") || strings.HasPrefix(name, "always") {
+			restart = true
 		}
-		return ""
+
+		exitcode = fmt.Sprintf("%d", container.State.ExitCode)
 	}
-	return string(out)
+	return
 }
 
 func (self DockerClient) ps(opts *dc.ListContainersOptions) ([]dc.APIContainers, error) {

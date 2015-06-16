@@ -15,15 +15,27 @@ var (
 	UserAgent     string
 )
 
+func SendContainerAutoRestartEvents(events []Event) {
+	data, err := json.Marshal(events)
+	if err != nil {
+		log.Printf("Cannot marshal the posting data: %s\n", events)
+	}
+	sendData(data)
+}
+
 func SendContainerEvent(event Event) {
 	data, err := json.Marshal(event)
 	if err != nil {
 		log.Printf("Cannot marshal the posting data: %s\n", event)
 	}
+	sendData(data)
+}
 
+func sendData(data []byte) {
 	counter := 1
 	for {
-		err := sendData(TutumEndpoint, data)
+		log.Println("sending event: ", string(data))
+		err := send(TutumEndpoint, data)
 		if err == nil {
 			break
 		} else {
@@ -39,7 +51,7 @@ func SendContainerEvent(event Event) {
 	}
 }
 
-func sendData(url string, data []byte) error {
+func send(url string, data []byte) error {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {

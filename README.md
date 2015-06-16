@@ -4,9 +4,9 @@ tutum/utils:container-events
     docker run \
       -d \
       -v /var/run:/var/run:rw \
-      -v /usr/lib/tutum/docker:/docker:r \
       -e TUTUM_HOST="https://dashboard.tutum.co/" \
       -e DOCKER_HOST="unix:///var/run/docker.sock" \
+      -e REPORT_INTERVAL=30
       -e TUTUM_AUTH=xxxxxxxxxx \
       -e NODE_UUID=xxxxxxxxx \
       -e SENTRY_DSN=xxxxxxxx \
@@ -20,3 +20,4 @@ tutum/utils:container-events
     TUTUM_AUTH          tutum auth
     NODE_UUID           node uuid
     SENTRY_DSN          sentry dsn
+    REPORT_INTERVAL     interval to report autorestarted container events to tutum

@@ -1,11 +1,11 @@
 package main //import "github.com/tutumcloud/container-events"
 
 import (
-	"flag"
 	. "github.com/tutumcloud/container-events/events"
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -19,14 +19,27 @@ const (
 )
 
 func main() {
-	flag.Parse()
+	TutumAuth = os.Getenv("TUTUM_AUTH")
+	NodeUUID = os.Getenv("NODE_UUID")
+	if TutumAuth == "**None**" {
+		log.Fatal("TUTUM_AUTH must be specified")
+	}
+	if NodeUUID == "**None**" {
+		log.Fatal("NodeUUID must be specified")
+	}
 
 	DockerHost = os.Getenv("DOCKER_HOST")
 	DockerBinary = os.Getenv("DOCKER_BINARY")
-	TutumAuth = os.Getenv("TUTUM_AUTH")
-	NodeUUID = os.Getenv("NODE_UUID")
 	DSN = os.Getenv("SENTRY_DSN")
 	TutumHost := os.Getenv("TUTUM_HOST")
+
+	intervalStr := os.Getenv("REPORT_INTERVAL")
+	interval, err := strconv.Atoi(intervalStr)
+	if err != nil {
+		ReportInterval = 30
+	} else {
+		ReportInterval = interval
+	}
 
 	TutumEndpoint = JoinURL(TutumHost, apiEndpoint)
 	UserAgent = "tutum-events/" + version

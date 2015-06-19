@@ -1,10 +1,10 @@
 package events
 
 import (
-	"log"
-	"time"
-
 	dc "github.com/fsouza/go-dockerclient"
+	"log"
+	"strings"
+	"time"
 )
 
 type Event struct {
@@ -14,10 +14,14 @@ type Event struct {
 	From       string `json:"from"`
 	Time       int64  `json:"time"`
 	HandleTime int64  `json:"handletime"`
-	Inspect    string `json:"inspect"`
+	ExitCode   string `json:"exitcode"`
 }
 
-var NodeUUID string
+var (
+	AutorestartEvents = make([]Event, 0)
+	NodeUUID          string
+	ReportInterval    int
+)
 
 func (self DockerClient) MonitorEvents() {
 	log.Println("Start monitoring container events ...")
@@ -27,6 +31,20 @@ func (self DockerClient) MonitorEvents() {
 		log.Fatal("Failed to add event listener:", err)
 	}
 	defer self.removeEventListener(listener)
+
+	ticker := time.NewTicker(time.Second * time.Duration(ReportInterval))
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				events := AutorestartEvents
+				AutorestartEvents = make([]Event, 0)
+				if len(events) > 0 {
+					go SendContainerAutoRestartEvents(events)
+				}
+			}
+		}
+	}()
 
 	timeout := time.After(1 * time.Second)
 	for {
@@ -40,10 +58,16 @@ func (self DockerClient) MonitorEvents() {
 }
 
 func (self DockerClient) handleEvents(apiEvent *dc.APIEvents) {
-	handle_time := time.Now().UnixNano()
-
-	inspect := self.inspect(apiEvent.ID)
-	event := Event{NodeUUID, apiEvent.Status, apiEvent.ID, apiEvent.From,
-		apiEvent.Time, handle_time, inspect}
-	SendContainerEvent(event)
+	if strings.ToLower(apiEvent.Status) == "start" ||
+		strings.ToLower(apiEvent.Status) == "die" {
+		handle_time := time.Now().UnixNano()
+		autorestart, exitcode := self.inspect(apiEvent.ID)
+		event := Event{NodeUUID, apiEvent.Status, apiEvent.ID, apiEvent.From,
+			apiEvent.Time, handle_time, exitcode}
+		if autorestart {
+			AutorestartEvents = append(AutorestartEvents, event)
+		} else {
+			SendContainerEvent(event)
+		}
+	}
 }

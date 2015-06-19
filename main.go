@@ -1,7 +1,7 @@
-package main //import "github.com/tutumcloud/container-events"
+package main //import "github.com/tutumcloud/events"
 
 import (
-	. "github.com/tutumcloud/container-events/events"
+	. "github.com/tutumcloud/events/docker-events"
 	"log"
 	"os"
 	"runtime"

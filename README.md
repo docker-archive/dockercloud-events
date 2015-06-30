@@ -1,6 +1,11 @@
 tutum/events
 ============
-   
+
+System container that forwards docker events to Tutum's API. System containers are launched, configured and managed automatically on every node by Tutum.
+
+
+## Usage
+
     docker run \
       -d \
       -v /var/run:/var/run:rw \
@@ -14,7 +19,6 @@ tutum/events
 
 
 ## Arguments
-
 
 Key | Description
 ----|------------

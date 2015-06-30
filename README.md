@@ -1,23 +1,26 @@
-tutum/utils:container-events
-============================
+tutum/events
+============
    
     docker run \
       -d \
       -v /var/run:/var/run:rw \
-      -e TUTUM_HOST="https://dashboard.tutum.co/" \
-      -e DOCKER_HOST="unix:///var/run/docker.sock" \
-      -e REPORT_INTERVAL=30 \
       -e TUTUM_AUTH=xxxxxxxxxx \
       -e NODE_UUID=xxxxxxxxx \
-      -e SENTRY_DSN=xxxxxxxx \
+      [-e SENTRY_DSN=xxxxxxxx] \
+      [-e REPORT_INTERVAL=30] \
+      [-e TUTUM_HOST="https://dashboard.tutum.co/"] \
+      [-e DOCKER_HOST="unix:///var/run/docker.sock"] \
       tutum/events
 
 
-**Arguments**
+## Arguments
 
-    TUTUM_HOST          tutum host, "https://dashboard.tutum.co/" by default
-    DOCKER_HOST         docker host, "unix:///var/run/docker.sock" by default
-    TUTUM_AUTH          tutum auth
-    NODE_UUID           node uuid
-    SENTRY_DSN          sentry dsn
-    REPORT_INTERVAL     interval to report autorestarted container events to tutum
+
+Key | Description
+----|------------
+TUTUM_AUTH | Tutum's API role `Authorization` header
+NODE_UUID | Tutum's node UUID
+TUTUM_HOST | (optional) Tutum API host
+DOCKER_HOST | (optional) Docker host
+SENTRY_DSN | (optional) Sentry DSN for bug reporting
+REPORT_INTERVAL | (optional) Interval in seconds to report autorestarted container events

@@ -8,13 +8,11 @@ System container that forwards docker events to Tutum's API. System containers a
 
     docker run \
       -d \
+	  -v /usr/lib/tutum/docker:/usr/bin/docker
       -v /var/run:/var/run:rw \
-      -e TUTUM_AUTH=xxxxxxxxxx \
-      -e NODE_UUID=xxxxxxxxx \
+      -e TUTUM_URL=xxxxxxxx
       [-e SENTRY_DSN=xxxxxxxx] \
       [-e REPORT_INTERVAL=30] \
-      [-e TUTUM_HOST="https://dashboard.tutum.co/"] \
-      [-e DOCKER_HOST="unix:///var/run/docker.sock"] \
       tutum/events
 
 
@@ -23,8 +21,6 @@ System container that forwards docker events to Tutum's API. System containers a
 Key | Description
 ----|------------
 TUTUM_AUTH | Tutum's API role `Authorization` header
-NODE_UUID | Tutum's node UUID
-TUTUM_HOST | (optional) Tutum API host
-DOCKER_HOST | (optional) Docker host
+TUTUM_UTL  | The URL that docker events are POSTed to 
 SENTRY_DSN | (optional) Sentry DSN for bug reporting
 REPORT_INTERVAL | (optional) Interval in seconds to report autorestarted container events

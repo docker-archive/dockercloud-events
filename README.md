@@ -10,7 +10,8 @@ System container that forwards docker events to Tutum's API. System containers a
       -d \
 	  -v /usr/lib/tutum/docker:/usr/bin/docker
       -v /var/run:/var/run:rw \
-      -e TUTUM_URL=xxxxxxxx
+      -e TUTUM_URL=xxxxxxxx \
+      -e TUTUM_AUTH=xxxxxxxx \
       [-e SENTRY_DSN=xxxxxxxx] \
       [-e REPORT_INTERVAL=30] \
       tutum/events

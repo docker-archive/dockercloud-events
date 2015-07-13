@@ -22,7 +22,7 @@ type Event struct {
 	Status     string `json:"status"`
 	ID         string `json:"id"`
 	From       string `json:"from"`
-	Time       string `json:"time"`
+	Time       int64  `json:"time"`
 	HandleTime int64  `json:"handletime"`
 	ExitCode   string `json:"exitcode"`
 }
@@ -130,7 +130,12 @@ func monitorEvents() {
 						if NodeUUID != "" {
 							event.Node = NodeUUID
 						}
-						event.Time = terms[1]
+						eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+						if err == nil {
+							event.Time = eventTime.Unix()
+						} else {
+							event.Time = time.Now().Unix()
+						}
 						event.ID = terms[2]
 						event.From = terms[3]
 						event.Status = terms[4]

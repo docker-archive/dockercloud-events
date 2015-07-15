@@ -22,6 +22,6 @@ System container that forwards docker events to Tutum's API. System containers a
 Key | Description
 ----|------------
 TUTUM_AUTH | Tutum's API role `Authorization` header
-TUTUM_UTL  | The URL that docker events are POSTed to 
+TUTUM_URL  | The URL that docker events are POSTed to 
 SENTRY_DSN | (optional) Sentry DSN for bug reporting
 REPORT_INTERVAL | (optional) Interval in seconds to report autorestarted container events

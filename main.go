@@ -110,55 +110,56 @@ func monitorEvents() {
 		}
 	}()
 
-	for {
-		log.Println("docker events starts")
-		cmd := exec.Command(DockerPath, "events")
-		cmdReader, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Fatal("Error creating StdoutPipe for Cmd", err)
-		}
+	log.Println("docker events starts")
+	cmd := exec.Command(DockerPath, "events")
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal("Error creating StdoutPipe for Cmd", err)
+	}
 
-		scanner := bufio.NewScanner(cmdReader)
-		go func() {
-			for scanner.Scan() {
-				eventStr := scanner.Text()
-				if eventStr != "" {
-					re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
-					terms := re.FindStringSubmatch(eventStr)
-					if len(terms) == 5 {
-						var event Event
-						if NodeUUID != "" {
-							event.Node = NodeUUID
-						}
-						eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
-						if err == nil {
-							event.Time = eventTime.Unix()
-						} else {
-							event.Time = time.Now().Unix()
-						}
-						event.ID = terms[2]
-						event.From = terms[3]
-						event.Status = terms[4]
-						event.HandleTime = time.Now().UnixNano()
-						go eventHandler(event)
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			eventStr := scanner.Text()
+			if eventStr != "" {
+				re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
+				terms := re.FindStringSubmatch(eventStr)
+				if len(terms) == 5 {
+					var event Event
+					if NodeUUID != "" {
+						event.Node = NodeUUID
 					}
+					eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+					if err == nil {
+						event.Time = eventTime.Unix()
+					} else {
+						event.Time = time.Now().Unix()
+					}
+					event.ID = terms[2]
+					event.From = terms[3]
+					event.Status = terms[4]
+					event.HandleTime = time.Now().UnixNano()
+					go eventHandler(event)
 				}
 			}
-		}()
-
-		err = cmd.Start()
-		if err != nil {
-			log.Print("Error starting docker evets", err)
-			break
 		}
-
-		err = cmd.Wait()
-		if err != nil {
-			log.Print("Error waiting for docker events", err)
-			break
+		if scanner.Err() == nil {
+			log.Fatal("The scanner returns an error:", "EOF")
+		} else {
+			log.Fatal("The scanner returns an error:", scanner.Err())
 		}
-		log.Println("docker events stops")
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		log.Fatal("Error starting docker evets", err)
 	}
+
+	err = cmd.Wait()
+	if err != nil {
+		log.Fatal("Error waiting for docker events", err)
+	}
+	log.Println("docker events stops")
 }
 
 func eventHandler(event Event) {

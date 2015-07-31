@@ -18,7 +18,6 @@ import (
 )
 
 type Event struct {
-	Node       string `json:"node",omitempty`
 	Status     string `json:"status"`
 	ID         string `json:"id"`
 	From       string `json:"from"`
@@ -32,9 +31,8 @@ func init() {
 }
 
 const (
-	VERSION     = "0.1"
-	DockerPath  = "/usr/bin/docker"
-	ApiEndpoint = "api/agent/container/event/"
+	VERSION    = "0.1"
+	DockerPath = "/usr/bin/docker"
 )
 
 var (
@@ -45,7 +43,6 @@ var (
 	TutumUrl          string
 	sentryClient      *raven.Client = nil
 	DSN               string
-	NodeUUID          string
 )
 
 func main() {
@@ -55,16 +52,7 @@ func main() {
 		log.Fatal("TUTUM_AUTH must be specified")
 	}
 	if TutumUrl == "**None**" {
-		TutumHost := os.Getenv("TUTUM_HOST")
-		NodeUUID = os.Getenv("NODE_UUID")
-		if strings.HasSuffix(TutumHost, "/") {
-			TutumUrl = TutumHost + ApiEndpoint
-		} else {
-			TutumUrl = TutumHost + "/" + ApiEndpoint
-		}
-		if TutumUrl == "" {
-			log.Fatal("TUTUM_URL must be specified")
-		}
+		log.Fatal("TUTUM_URL must be specified")
 	}
 
 	DSN = os.Getenv("SENTRY_DSN")
@@ -126,9 +114,6 @@ func monitorEvents() {
 				terms := re.FindStringSubmatch(eventStr)
 				if len(terms) == 5 {
 					var event Event
-					if NodeUUID != "" {
-						event.Node = NodeUUID
-					}
 					eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
 					if err == nil {
 						event.Time = eventTime.Unix()

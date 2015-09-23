@@ -8,8 +8,8 @@ System container that forwards docker events to Tutum's API. System containers a
 
     docker run \
       -d \
-	  -v /usr/lib/tutum/docker:/usr/bin/docker
-      -v /var/run:/var/run:rw \
+      -v /usr/lib/tutum/docker:/usr/bin/docker
+      -v /var/run/docker.sock:/var/run/docker.sock:rw \
       -e TUTUM_URL=xxxxxxxx \
       -e TUTUM_AUTH=xxxxxxxx \
       [-e SENTRY_DSN=xxxxxxxx] \

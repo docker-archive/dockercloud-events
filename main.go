@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/getsentry/raven-go"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getsentry/raven-go"
 )
 
 type Event struct {
@@ -24,6 +26,12 @@ type Event struct {
 	Time       int64  `json:"time"`
 	HandleTime int64  `json:"handletime"`
 	ExitCode   string `json:"exitcode"`
+}
+
+type ContaineState struct {
+	isRunning bool
+	created   int64
+	updated   int64
 }
 
 func init() {
@@ -36,16 +44,20 @@ const (
 )
 
 var (
-	AutorestartEvents = make([]Event, 0)
-	UserAgent         = "tutum-events/" + VERSION
-	ReportInterval    int
-	TutumAuth         string
-	TutumUrl          string
-	sentryClient      *raven.Client = nil
-	DSN               string
+	UserAgent      = "tutum-events/" + VERSION
+	Interval       int
+	TutumAuth      string
+	TutumUrl       string
+	sentryClient   *raven.Client = nil
+	DSN            string
+	Container      = make(map[string]*ContaineState)
+	FlagStandalone *bool
 )
 
 func main() {
+	FlagStandalone = flag.Bool("standalone", false, "Standalone mode")
+	flag.Parse()
+
 	TutumAuth = os.Getenv("TUTUM_AUTH")
 	TutumUrl = os.Getenv("TUTUM_URL")
 	if TutumAuth == "**None**" {
@@ -63,14 +75,17 @@ func main() {
 
 	intervalStr := os.Getenv("REPORT_INTERVAL")
 
-	interval, err := strconv.Atoi(intervalStr)
-	if err != nil {
-		ReportInterval = 30
+	if interval, err := strconv.Atoi(intervalStr); err == nil {
+		Interval = interval
 	} else {
-		ReportInterval = interval
+		Interval = 5
 	}
 
-	log.Println("POST docker event to:", TutumUrl)
+	if *FlagStandalone {
+		log.Print("Running in standalone mode")
+	} else {
+		log.Print("POST docker event to: ", TutumUrl)
+	}
 
 	cmd := exec.Command(DockerPath, "version")
 	if err := cmd.Start(); err != nil {
@@ -84,25 +99,16 @@ func main() {
 }
 
 func monitorEvents() {
-	ticker := time.NewTicker(time.Second * time.Duration(ReportInterval))
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				events := AutorestartEvents
-				AutorestartEvents = make([]Event, 0)
-				if len(events) > 0 {
-					go sendContainerAutoRestartEvents(events)
-				}
-			}
-		}
-	}()
-
 	log.Println("docker events starts")
 	cmd := exec.Command(DockerPath, "events")
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatal("Error creating StdoutPipe for Cmd", err)
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		log.Fatal("Error starting docker evets", err)
 	}
 
 	scanner := bufio.NewScanner(cmdReader)
@@ -124,7 +130,12 @@ func monitorEvents() {
 					event.From = terms[3]
 					event.Status = terms[4]
 					event.HandleTime = time.Now().UnixNano()
-					go eventHandler(event)
+
+					state := strings.ToLower(event.Status)
+					if state == "start" || state == "die" {
+						updateContainerState(&event)
+						go eventHandler(&event)
+					}
 				}
 			}
 		}
@@ -135,11 +146,6 @@ func monitorEvents() {
 		}
 	}()
 
-	err = cmd.Start()
-	if err != nil {
-		log.Fatal("Error starting docker evets", err)
-	}
-
 	err = cmd.Wait()
 	if err != nil {
 		log.Fatal("Error waiting for docker events", err)
@@ -147,9 +153,55 @@ func monitorEvents() {
 	log.Println("docker events stops")
 }
 
-func eventHandler(event Event) {
-	event.ExitCode = "0"
-	isRestart := false
+func updateContainerState(event *Event) {
+	isRunning := false
+	if strings.ToLower(event.Status) == "start" {
+		isRunning = true
+	}
+	container := Container[event.ID]
+	if container == nil {
+		Container[event.ID] = &ContaineState{isRunning: isRunning, updated: event.HandleTime, created: event.HandleTime}
+	} else {
+		container.updated = event.HandleTime
+		container.isRunning = isRunning
+	}
+}
+
+func eventHandler(event *Event) {
+	exitcode, isAutoRestart := getContainerStatus(event)
+	event.ExitCode = exitcode
+
+	if isAutoRestart {
+		status := strings.ToLower(event.Status)
+		if status == "die" {
+			container := Container[event.ID]
+			if container != nil && container.created == container.updated {
+				sendContainerEvent(event)
+			}
+		}
+		if status == "start" {
+			container := Container[event.ID]
+			if container == nil {
+				sendContainerEvent(event)
+			} else {
+				if container.created == container.updated {
+					delete(Container, event.ID)
+					sendContainerEvent(event)
+				} else {
+					go delaySendContainerEvent(event)
+				}
+			}
+		}
+	} else {
+		delete(Container, event.ID)
+		sendContainerEvent(event)
+	}
+
+}
+
+func getContainerStatus(event *Event) (exitcode string, isAutoRestart bool) {
+	exitcode = "0"
+	isAutoRestart = false
 	if strings.ToLower(event.Status) == "start" ||
 		strings.ToLower(event.Status) == "die" {
 
@@ -162,33 +214,41 @@ func eventHandler(event Event) {
 			if len(terms) == 2 {
 				if strings.HasPrefix(strings.ToLower(terms[0]), "on-failure") ||
 					strings.HasPrefix(strings.ToLower(terms[0]), "always") {
-					isRestart = true
+					isAutoRestart = true
 				}
-				event.ExitCode = strings.Trim(terms[1], "\n")
+				exitcode = strings.Trim(terms[1], "\n")
 			}
 		}
-		if isRestart {
-			AutorestartEvents = append(AutorestartEvents, event)
-		} else {
-			sendContainerEvent(event)
-		}
 	}
+	return
 }
 
-func sendContainerAutoRestartEvents(events []Event) {
-	data, err := json.Marshal(events)
-	if err != nil {
-		log.Printf("Cannot marshal the posting data: %s\n", events)
-	}
-	sendData(data)
-}
-
-func sendContainerEvent(event Event) {
-	data, err := json.Marshal(event)
+func sendContainerEvent(event *Event) {
+	data, err := json.Marshal(*event)
 	if err != nil {
 		log.Printf("Cannot marshal the posting data: %s\n", event)
 	}
-	sendData(data)
+	if *FlagStandalone {
+		log.Print("Send event: ", string(data))
+	} else {
+		sendData(data)
+	}
+}
+
+func delaySendContainerEvent(event *Event) {
+	time.Sleep(time.Duration(Interval) * time.Second)
+	container := Container[event.ID]
+	if container == nil {
+		log.Print("No container found")
+		sendContainerEvent(event)
+	} else {
+		currentTime := time.Now().UnixNano()
+		if currentTime-container.updated >= int64(Interval)*1000000000 && container.isRunning {
+			delete(Container, event.ID)
+			log.Printf("Run over %d", currentTime-container.updated)
+			sendContainerEvent(event)
+		}
+	}
 }
 
 func sendData(data []byte) {

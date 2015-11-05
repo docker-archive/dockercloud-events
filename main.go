@@ -28,7 +28,7 @@ type Event struct {
 	ExitCode   string `json:"exitcode"`
 }
 
-type ContaineState struct {
+type ContainerState struct {
 	isRunning bool
 	created   int64
 	updated   int64
@@ -50,7 +50,7 @@ var (
 	TutumUrl       string
 	sentryClient   *raven.Client = nil
 	DSN            string
-	Container      = make(map[string]*ContaineState)
+	Container      = make(map[string]*ContainerState)
 	FlagStandalone *bool
 )
 
@@ -160,7 +160,7 @@ func updateContainerState(event *Event) {
 	}
 	container := Container[event.ID]
 	if container == nil {
-		Container[event.ID] = &ContaineState{isRunning: isRunning, updated: event.HandleTime, created: event.HandleTime}
+		Container[event.ID] = &ContainerState{isRunning: isRunning, updated: event.HandleTime, created: event.HandleTime}
 	} else {
 		container.updated = event.HandleTime
 		container.isRunning = isRunning

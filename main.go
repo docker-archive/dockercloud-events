@@ -39,7 +39,7 @@ func init() {
 }
 
 const (
-	VERSION    = "0.2"
+	VERSION    = "0.3"
 	DockerPath = "/usr/bin/docker"
 )
 

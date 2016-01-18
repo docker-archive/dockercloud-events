@@ -39,15 +39,15 @@ func init() {
 }
 
 const (
-	VERSION    = "0.3"
+	VERSION    = "1.0"
 	DockerPath = "/usr/bin/docker"
 )
 
 var (
-	UserAgent      = "tutum-events/" + VERSION
+	UserAgent      = "events-daemon/" + VERSION
 	Interval       int
-	TutumAuth      string
-	TutumUrl       string
+	Auth           string
+	ApiUrl         string
 	sentryClient   *raven.Client = nil
 	DSN            string
 	Container      = make(map[string]*ContainerState)
@@ -58,13 +58,13 @@ func main() {
 	FlagStandalone = flag.Bool("standalone", false, "Standalone mode")
 	flag.Parse()
 
-	TutumAuth = os.Getenv("TUTUM_AUTH")
-	TutumUrl = os.Getenv("TUTUM_URL")
-	if TutumAuth == "**None**" {
-		log.Fatal("TUTUM_AUTH must be specified")
+	Auth = os.Getenv("DOCKERCLOUD_AUTH")
+	ApiUrl = os.Getenv("EVENTS_API_URL")
+	if Auth == "**None**" {
+		log.Fatal("DOCKERCLOUD_AUTH must be specified")
 	}
-	if TutumUrl == "**None**" {
-		log.Fatal("TUTUM_URL must be specified")
+	if ApiUrl == "**None**" {
+		log.Fatal("EVENTS_API_URL must be specified")
 	}
 
 	DSN = os.Getenv("SENTRY_DSN")
@@ -84,7 +84,7 @@ func main() {
 	if *FlagStandalone {
 		log.Print("Running in standalone mode")
 	} else {
-		log.Print("POST docker event to: ", TutumUrl)
+		log.Print("POST docker event to: ", ApiUrl)
 	}
 
 	cmd := exec.Command(DockerPath, "version")
@@ -255,7 +255,7 @@ func sendData(data []byte) {
 	counter := 1
 	for {
 		log.Println("sending event: ", string(data))
-		err := send(TutumUrl, data)
+		err := send(ApiUrl, data)
 		if err == nil {
 			break
 		} else {
@@ -278,7 +278,7 @@ func send(url string, data []byte) error {
 		sendError(err, "Failed to create http.NewRequest", nil)
 		return err
 	}
-	req.Header.Add("Authorization", TutumAuth)
+	req.Header.Add("Authorization", Auth)
 	req.Header.Add("User-Agent", UserAgent)
 	resp, err := client.Do(req)
 	if err != nil {

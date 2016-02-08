@@ -1,4 +1,4 @@
-package main //import "github.com/tutumcloud/events"
+package main //import "github.com/docker/dockercloud-events"
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-tutum/events-daemon
+dockercloud/events
 ===================
 
 System container that forwards docker events to Docker Cloud's API. System containers are launched, configured and managed automatically on every node by Docker Cloud.
@@ -13,7 +13,7 @@ System container that forwards docker events to Docker Cloud's API. System conta
       -e EVENTS_API_URL=xxxxxxxx \
       -e DOCKERCLOUD_AUTH=xxxxxxxx \
       [-e REPORT_INTERVAL=30] \
-      tutum/events-daemon
+      dockercloud/events
 
 
 ## Arguments

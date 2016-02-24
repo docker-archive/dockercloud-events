@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"net/http/cookiejar"
+
 	"github.com/getsentry/raven-go"
 )
 
@@ -49,12 +51,14 @@ var (
 	Auth           string
 	ApiUrl         string
 	sentryClient   *raven.Client = nil
+	jar            http.CookieJar
 	DSN            string
 	Container      = make(map[string]*ContainerState)
 	FlagStandalone *bool
 )
 
 func main() {
+	jar, _ = cookiejar.New(nil)
 	FlagStandalone = flag.Bool("standalone", false, "Standalone mode")
 	flag.Parse()
 
@@ -272,7 +276,7 @@ func sendData(data []byte) {
 }
 
 func send(url string, data []byte) error {
-	client := &http.Client{}
+	client := &http.Client{Jar: jar}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		sendError(err, "Failed to create http.NewRequest", nil)
@@ -296,6 +300,7 @@ func send(url string, data []byte) error {
 			return errors.New(resp.Status)
 		}
 	}
+	jar.SetCookies(req.URL, resp.Cookies())
 	return nil
 }
 

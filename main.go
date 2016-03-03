@@ -41,7 +41,7 @@ func init() {
 }
 
 const (
-	VERSION    = "1.1"
+	VERSION    = "1.2"
 	DockerPath = "/usr/bin/docker"
 )
 
@@ -58,6 +58,7 @@ var (
 )
 
 func main() {
+	log.Print("dockercloud-events:", VERSION)
 	jar, _ = cookiejar.New(nil)
 	FlagStandalone = flag.Bool("standalone", false, "Standalone mode")
 	flag.Parse()

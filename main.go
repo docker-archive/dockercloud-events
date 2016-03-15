@@ -22,12 +22,11 @@ import (
 )
 
 type Event struct {
-	Status     string `json:"status"`
-	ID         string `json:"id"`
-	From       string `json:"from"`
-	Time       int64  `json:"time"`
-	HandleTime int64  `json:"handletime"`
-	ExitCode   string `json:"exitcode"`
+	Status   string `json:"status"`
+	ID       string `json:"id"`
+	From     string `json:"from"`
+	Time     int64  `json:"time"`
+	ExitCode string `json:"exitcode"`
 }
 
 type ContainerState struct {
@@ -41,7 +40,7 @@ func init() {
 }
 
 const (
-	VERSION    = "1.1"
+	VERSION    = "1.2"
 	DockerPath = "/usr/bin/docker"
 )
 
@@ -58,6 +57,7 @@ var (
 )
 
 func main() {
+	log.Print("dockercloud-events:", VERSION)
 	jar, _ = cookiejar.New(nil)
 	FlagStandalone = flag.Bool("standalone", false, "Standalone mode")
 	flag.Parse()
@@ -119,27 +119,12 @@ func monitorEvents() {
 	go func() {
 		for scanner.Scan() {
 			eventStr := scanner.Text()
-			if eventStr != "" {
-				re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
-				terms := re.FindStringSubmatch(eventStr)
-				if len(terms) == 5 {
-					var event Event
-					eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
-					if err == nil {
-						event.Time = eventTime.Unix()
-					} else {
-						event.Time = time.Now().Unix()
-					}
-					event.ID = terms[2]
-					event.From = terms[3]
-					event.Status = terms[4]
-					event.HandleTime = time.Now().UnixNano()
-
-					state := strings.ToLower(event.Status)
-					if state == "start" || state == "die" {
-						updateContainerState(&event)
-						go eventHandler(&event)
-					}
+			event := parseEvent(eventStr)
+			if event != nil {
+				state := strings.ToLower(event.Status)
+				if state == "start" || state == "die" {
+					updateContainerState(event)
+					go eventHandler(event)
 				}
 			}
 		}
@@ -157,6 +142,57 @@ func monitorEvents() {
 	log.Println("docker events stops")
 }
 
+func parseEvent(eventStr string) (event *Event) {
+	if eventStr == "" {
+		return nil
+	}
+
+	// for docker event 1.10 or above
+	re := regexp.MustCompile("(.*) container (\\w*) (.{64}) \\((.*)\\)")
+	terms := re.FindStringSubmatch(eventStr)
+	if len(terms) == 5 {
+		var event Event
+		eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+		if err == nil {
+			event.Time = eventTime.UnixNano()
+		} else {
+			event.Time = time.Now().UnixNano()
+		}
+		event.ID = terms[3]
+		event.Status = terms[2]
+
+		if terms[4] != "" {
+			attrs := strings.Split(terms[4], ",")
+			for _, attr := range attrs {
+				attr = strings.TrimSpace(attr)
+				if strings.HasPrefix(strings.ToLower(attr), "image=") && len(attr) > 6 {
+					event.From = attr[6:]
+				}
+			}
+		}
+		return &event
+	}
+
+	// for docker event 1.9 or below
+	re = regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
+	terms = re.FindStringSubmatch(eventStr)
+	if len(terms) == 5 {
+		var event Event
+		eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+		if err == nil {
+			event.Time = eventTime.UnixNano()
+		} else {
+			event.Time = time.Now().UnixNano()
+		}
+		event.ID = terms[2]
+		event.From = terms[3]
+		event.Status = terms[4]
+		return &event
+	}
+
+	return nil
+}
+
 func updateContainerState(event *Event) {
 	isRunning := false
 	if strings.ToLower(event.Status) == "start" {
@@ -164,9 +200,9 @@ func updateContainerState(event *Event) {
 	}
 	container := Container[event.ID]
 	if container == nil {
-		Container[event.ID] = &ContainerState{isRunning: isRunning, updated: event.HandleTime, created: event.HandleTime}
+		Container[event.ID] = &ContainerState{isRunning: isRunning, updated: event.Time, created: event.Time}
 	} else {
-		container.updated = event.HandleTime
+		container.updated = event.Time
 		container.isRunning = isRunning
 	}
 }
@@ -249,7 +285,7 @@ func delaySendContainerEvent(event *Event) {
 		currentTime := time.Now().UnixNano()
 		if currentTime-container.updated >= int64(Interval)*1000000000 && container.isRunning {
 			delete(Container, event.ID)
-			log.Printf("Run over %d", currentTime-container.updated)
+			log.Printf("Autorestart container(%s) runs longer than 5s", event.ID)
 			sendContainerEvent(event)
 		}
 	}

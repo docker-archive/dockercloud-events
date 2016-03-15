@@ -22,12 +22,11 @@ import (
 )
 
 type Event struct {
-	Status     string `json:"status"`
-	ID         string `json:"id"`
-	From       string `json:"from"`
-	Time       int64  `json:"time"`
-	HandleTime int64  `json:"handletime"`
-	ExitCode   string `json:"exitcode"`
+	Status   string `json:"status"`
+	ID       string `json:"id"`
+	From     string `json:"from"`
+	Time     int64  `json:"time"`
+	ExitCode string `json:"exitcode"`
 }
 
 type ContainerState struct {
@@ -161,7 +160,6 @@ func parseEvent(eventStr string) (event *Event) {
 		}
 		event.ID = terms[3]
 		event.Status = terms[2]
-		event.HandleTime = time.Now().UnixNano()
 
 		if terms[4] != "" {
 			attrs := strings.Split(terms[4], ",")
@@ -189,7 +187,6 @@ func parseEvent(eventStr string) (event *Event) {
 		event.ID = terms[2]
 		event.From = terms[3]
 		event.Status = terms[4]
-		event.HandleTime = time.Now().UnixNano()
 		return &event
 	}
 
@@ -203,9 +200,9 @@ func updateContainerState(event *Event) {
 	}
 	container := Container[event.ID]
 	if container == nil {
-		Container[event.ID] = &ContainerState{isRunning: isRunning, updated: event.HandleTime, created: event.HandleTime}
+		Container[event.ID] = &ContainerState{isRunning: isRunning, updated: event.Time, created: event.Time}
 	} else {
-		container.updated = event.HandleTime
+		container.updated = event.Time
 		container.isRunning = isRunning
 	}
 }
@@ -288,7 +285,7 @@ func delaySendContainerEvent(event *Event) {
 		currentTime := time.Now().UnixNano()
 		if currentTime-container.updated >= int64(Interval)*1000000000 && container.isRunning {
 			delete(Container, event.ID)
-			log.Printf("Run over %d", currentTime-container.updated)
+			log.Printf("Autorestart container(%s) runs longer than 5s", event.ID)
 			sendContainerEvent(event)
 		}
 	}

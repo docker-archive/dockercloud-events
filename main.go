@@ -332,7 +332,7 @@ func send(url string, data []byte) error {
 		log.Printf("Send event failed: %s - %s", resp.Status, string(data))
 		extra := map[string]interface{}{"data": string(data)}
 		sendError(errors.New(resp.Status), "http error", extra)
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			return errors.New(resp.Status)
 		}
 	}

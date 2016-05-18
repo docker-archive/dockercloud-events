@@ -54,6 +54,7 @@ var (
 	DSN            string
 	Container      = make(map[string]*ContainerState)
 	FlagStandalone *bool
+	InvalidHeaders = make(map[string]bool)
 )
 
 func main() {
@@ -121,6 +122,11 @@ func monitorEvents() {
 			eventStr := scanner.Text()
 			event := parseEvent(eventStr)
 			if event != nil {
+
+				if InvalidHeaders[Auth] == true {
+					log.Printf("Event(%s) not send: using invalid auth header", event)
+					continue
+				}
 				state := strings.ToLower(event.Status)
 				if state == "start" || state == "die" {
 					updateContainerState(event)
@@ -334,6 +340,11 @@ func send(url string, data []byte) error {
 		sendError(errors.New(resp.Status), "http error", extra)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			return errors.New(resp.Status)
+		}
+		if resp.StatusCode == 401 {
+			InvalidHeaders[Auth] = true
+			log.Println(InvalidHeaders)
+			return nil
 		}
 	}
 	jar.SetCookies(req.URL, resp.Cookies())

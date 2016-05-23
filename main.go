@@ -40,7 +40,7 @@ func init() {
 }
 
 const (
-	VERSION    = "1.2"
+	VERSION    = "1.3"
 	DockerPath = "/usr/bin/docker"
 )
 
@@ -54,6 +54,7 @@ var (
 	DSN            string
 	Container      = make(map[string]*ContainerState)
 	FlagStandalone *bool
+	InvalidHeaders = make(map[string]bool)
 )
 
 func main() {
@@ -121,6 +122,11 @@ func monitorEvents() {
 			eventStr := scanner.Text()
 			event := parseEvent(eventStr)
 			if event != nil {
+
+				if InvalidHeaders[Auth] == true {
+					log.Printf("Event(%s) not send: using invalid auth header", event)
+					continue
+				}
 				state := strings.ToLower(event.Status)
 				if state == "start" || state == "die" {
 					updateContainerState(event)
@@ -332,8 +338,13 @@ func send(url string, data []byte) error {
 		log.Printf("Send event failed: %s - %s", resp.Status, string(data))
 		extra := map[string]interface{}{"data": string(data)}
 		sendError(errors.New(resp.Status), "http error", extra)
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			return errors.New(resp.Status)
+		}
+		if resp.StatusCode == 401 {
+			InvalidHeaders[Auth] = true
+			log.Println(InvalidHeaders)
+			return nil
 		}
 	}
 	jar.SetCookies(req.URL, resp.Cookies())

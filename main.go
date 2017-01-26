@@ -55,6 +55,7 @@ var (
 	Container      = make(map[string]*ContainerState)
 	FlagStandalone *bool
 	InvalidHeaders = make(map[string]bool)
+	EventChan      = make(chan *Event, 500)
 )
 
 func main() {
@@ -91,6 +92,8 @@ func main() {
 	} else {
 		log.Print("POST docker event to: ", ApiUrl)
 	}
+
+	go ProcessEventTask()
 
 	cmd := exec.Command(DockerPath, "version")
 	if err := cmd.Start(); err != nil {
@@ -222,17 +225,17 @@ func eventHandler(event *Event) {
 		if status == "die" {
 			container := Container[event.ID]
 			if container != nil && container.created == container.updated {
-				sendContainerEvent(event)
+				AddEventTask(event)
 			}
 		}
 		if status == "start" {
 			container := Container[event.ID]
 			if container == nil {
-				sendContainerEvent(event)
+				AddEventTask(event)
 			} else {
 				if container.created == container.updated {
 					delete(Container, event.ID)
-					sendContainerEvent(event)
+					AddEventTask(event)
 				} else {
 					go delaySendContainerEvent(event)
 				}
@@ -240,7 +243,7 @@ func eventHandler(event *Event) {
 		}
 	} else {
 		delete(Container, event.ID)
-		sendContainerEvent(event)
+		AddEventTask(event)
 	}
 
 }
@@ -269,15 +272,14 @@ func getContainerStatus(event *Event) (exitcode string, isAutoRestart bool) {
 	return
 }
 
-func sendContainerEvent(event *Event) {
-	data, err := json.Marshal(*event)
-	if err != nil {
-		log.Printf("Cannot marshal the posting data: %s\n", event)
-	}
-	if *FlagStandalone {
-		log.Print("Send event: ", string(data))
-	} else {
-		sendData(data)
+func AddEventTask(event *Event) {
+	EventChan <- event
+}
+
+func ProcessEventTask() {
+	for {
+		event := <-EventChan
+		sendEvent(event)
 	}
 }
 
@@ -286,21 +288,30 @@ func delaySendContainerEvent(event *Event) {
 	container := Container[event.ID]
 	if container == nil {
 		log.Print("No container found")
-		sendContainerEvent(event)
+		AddEventTask(event)
 	} else {
 		currentTime := time.Now().UnixNano()
 		if currentTime-container.updated >= int64(Interval)*1000000000 && container.isRunning {
 			delete(Container, event.ID)
 			log.Printf("Autorestart container(%s) runs longer than 5s", event.ID)
-			sendContainerEvent(event)
+			AddEventTask(event)
 		}
 	}
 }
 
-func sendData(data []byte) {
+func sendEvent(event *Event) {
+	if *FlagStandalone {
+		log.Printf("Send event: %+v", *event)
+	}
+	data, err := json.Marshal(*event)
+	if err != nil {
+		log.Printf("Cannot marshal the event: %+v\n", *event)
+		return
+	}
+
 	counter := 1
 	for {
-		log.Println("sending event: ", string(data))
+		log.Println("Sending event: ", string(data))
 		err := send(ApiUrl, data)
 		if err == nil {
 			break
@@ -310,7 +321,7 @@ func sendData(data []byte) {
 				break
 			} else {
 				counter *= 2
-				log.Printf("%s: Retry in %d seconds", err, counter)
+				log.Printf("Failed to send event %+v-%s: Retry in %d seconds", *event, err, counter)
 				time.Sleep(time.Duration(counter) * time.Second)
 			}
 		}
@@ -335,12 +346,12 @@ func send(url string, data []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		log.Printf("Send event failed: %s - %s", resp.Status, string(data))
 		extra := map[string]interface{}{"data": string(data)}
 		sendError(errors.New(resp.Status), "http error", extra)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			return errors.New(resp.Status)
 		}
+		log.Printf("Failed to send event: %s - %s", resp.Status, string(data))
 		if resp.StatusCode == 401 {
 			InvalidHeaders[Auth] = true
 			log.Println(InvalidHeaders)

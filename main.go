@@ -41,7 +41,7 @@ func init() {
 
 const (
 	VERSION    = "1.3"
-	DockerPath = "/usr/bin/docker"
+	DockerPath = "/usr/local/bin/docker"
 )
 
 var (

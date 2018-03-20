@@ -1,25 +1,6 @@
 dockercloud/events
 ===================
 
-System container that forwards docker events to Docker Cloud's API. System containers are launched, configured and managed automatically on every node by Docker Cloud.
+This repository has been deprecated and will no longer be maintained.
 
-
-## Usage
-
-    docker run \
-      -d \
-      -v /usr/lib/dockercloud/docker:/usr/bin/docker
-      -v /var/run/docker.sock:/var/run/docker.sock:rw \
-      -e EVENTS_API_URL=xxxxxxxx \
-      -e DOCKERCLOUD_AUTH=xxxxxxxx \
-      [-e REPORT_INTERVAL=30] \
-      dockercloud/events
-
-
-## Arguments
-
-Key | Description
-----|------------
-DOCKERCLOUD_AUTH | Docker Cloud's API role `Authorization` header
-EVENTS_API_URL  | The URL that docker events are POSTed to
-REPORT_INTERVAL | (optional) Interval in seconds to report autorestarted container events
+To access the last commit of the code, please switch to the [master branch](https://github.com/docker/dockercloud-events/tree/master).
